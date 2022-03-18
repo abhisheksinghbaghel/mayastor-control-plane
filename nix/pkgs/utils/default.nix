@@ -74,6 +74,29 @@ let
       };
       recurseForDerivations = true;
     };
+    apple-darwin = {
+      kubectl-plugin = naersk.buildPackage {
+        inherit release src version;
+        name = "kubectl-plugin";
+
+        preBuild = ''
+          # don't run during the dependency build phase
+          if [ ! -f build.rs ]; then
+            patchShebangs ./scripts/rust/generate-openapi-bindings.sh
+            ./scripts/rust/generate-openapi-bindings.sh
+          fi
+          sed -i '/ctrlp-tests.*=/d' ./kubectl-plugin/Cargo.toml
+        '';
+        cargoBuildOptions = attrs: attrs ++ [ "-p" "kubectl-plugin" ];
+        nativeBuildInputs = [ clang openapi-generator which git ];
+        doCheck = false;
+        usePureFromTOML = true;
+
+        CARGO_BUILD_TARGET = "x86_64-apple-darwin";
+        CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static";
+      };
+      recurseForDerivations = true;
+    };
   };
 in
 {
